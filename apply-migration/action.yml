@@ -1,0 +1,21 @@
+name: Apply Supabase Migrations
+description: Apply pending SQL migrations to a Supabase project via the Management API
+
+inputs:
+  supabase-access-token:
+    description: Supabase Management API access token
+    required: true
+  supabase-project-ref:
+    description: Supabase project reference ID
+    required: true
+  migrations-path:
+    description: Path to the migrations directory
+    default: supabase/migrations
+
+outputs:
+  applied-count:
+    description: Number of migrations applied
+
+runs:
+  using: node20
+  main: dist/index.js

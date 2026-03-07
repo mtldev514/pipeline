@@ -1,0 +1,30 @@
+name: Deploy to Vercel
+description: Build and deploy a project to Vercel (production or preview)
+
+inputs:
+  vercel-token:
+    description: Vercel API token
+    required: true
+  vercel-org-id:
+    description: Vercel organization/team ID
+    required: true
+  vercel-project-id:
+    description: Vercel project ID
+    required: true
+  production:
+    description: Deploy to production (true) or preview (false)
+    default: "false"
+  working-directory:
+    description: Working directory for the build
+    default: "."
+  github-token:
+    description: GitHub token for commenting preview URLs on PRs
+    default: ""
+
+outputs:
+  url:
+    description: The deployment URL
+
+runs:
+  using: node20
+  main: dist/index.js

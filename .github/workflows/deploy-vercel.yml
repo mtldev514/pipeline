@@ -1,0 +1,56 @@
+name: Deploy to Vercel
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version
+        type: string
+        default: "20"
+      working-directory:
+        description: Working directory for npm install and build
+        type: string
+        default: "."
+      install-command:
+        description: Install command (e.g. "npm ci", "bun install")
+        type: string
+        default: "npm ci"
+    secrets:
+      VERCEL_TOKEN:
+        required: true
+      VERCEL_ORG_ID:
+        required: true
+      VERCEL_PROJECT_ID:
+        required: true
+
+concurrency:
+  group: vercel-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: ${{ inputs.install-command }}
+        working-directory: ${{ inputs.working-directory }}
+
+      - name: Deploy to Vercel
+        uses: mtldev514/actions/deploy-vercel@main
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          production: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          working-directory: ${{ inputs.working-directory }}
+          github-token: ${{ github.token }}

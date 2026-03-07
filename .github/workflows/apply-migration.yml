@@ -1,0 +1,27 @@
+name: Apply Supabase Migrations
+
+on:
+  workflow_call:
+    inputs:
+      migrations-path:
+        description: Path to the SQL migrations directory
+        type: string
+        default: supabase/migrations
+    secrets:
+      SUPABASE_ACCESS_TOKEN:
+        required: true
+      SUPABASE_PROJECT_REF:
+        required: true
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply migrations
+        uses: mtldev514/actions/apply-migration@main
+        with:
+          supabase-access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          supabase-project-ref: ${{ secrets.SUPABASE_PROJECT_REF }}
+          migrations-path: ${{ inputs.migrations-path }}

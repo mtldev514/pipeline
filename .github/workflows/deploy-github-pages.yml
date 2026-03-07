@@ -1,0 +1,70 @@
+name: Deploy to GitHub Pages
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version
+        type: string
+        default: "20"
+      build-command:
+        description: Build command to run
+        type: string
+        default: "npm run build"
+      install-command:
+        description: Install command
+        type: string
+        default: "npm ci"
+      output-path:
+        description: Path to the built output directory to deploy
+        type: string
+        default: dist
+      skip-build:
+        description: Skip the build step (deploy static files directly)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: ${{ !inputs.skip-build }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        if: ${{ !inputs.skip-build }}
+        run: ${{ inputs.install-command }}
+
+      - name: Build
+        if: ${{ !inputs.skip-build }}
+        run: ${{ inputs.build-command }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ inputs.output-path }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
