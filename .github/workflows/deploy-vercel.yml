@@ -15,6 +15,10 @@ on:
         description: Install command (e.g. "npm ci", "bun install")
         type: string
         default: "npm ci"
+      production:
+        description: Deploy to production (true) or preview (false)
+        type: boolean
+        default: false
     secrets:
       VERCEL_TOKEN:
         required: true
@@ -51,6 +55,6 @@ jobs:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          production: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          production: ${{ inputs.production }}
           working-directory: ${{ inputs.working-directory }}
           github-token: ${{ github.token }}
