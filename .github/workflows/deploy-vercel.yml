@@ -46,7 +46,7 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
 
       - name: Deploy to Vercel
-        uses: mtldev514/actions/deploy-vercel@main
+        uses: mtldev514/pipeline/deploy-vercel@main
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
