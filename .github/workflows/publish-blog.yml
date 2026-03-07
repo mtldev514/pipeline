@@ -1,0 +1,104 @@
+name: Publish Blog
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version
+        type: string
+        default: "20"
+      install-command:
+        description: Install command
+        type: string
+        default: "npm ci"
+      build-command:
+        description: Build command to run
+        type: string
+        default: "npm run build"
+      output-path:
+        description: Path to the built output directory to deploy
+        type: string
+        default: dist
+      blog-path:
+        description: Path to blog markdown files relative to repo root
+        type: string
+        default: "data/blog"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed blog posts
+        id: blog
+        run: |
+          CHANGED=$(git diff --name-only --diff-filter=ACMR HEAD~1 HEAD -- '${{ inputs.blog-path }}' | grep '\.md$' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "No blog posts changed"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changed blog posts:"
+            echo "$CHANGED"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "files<<EOF" >> $GITHUB_OUTPUT
+            echo "$CHANGED" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: ${{ inputs.install-command }}
+
+      - name: Build
+        run: ${{ inputs.build-command }}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ inputs.output-path }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Blog publish summary
+        run: |
+          echo "### Blog Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.blog.outputs.has_changes }}" = "true" ]; then
+            echo "**New/updated posts:**" >> $GITHUB_STEP_SUMMARY
+            echo '${{ steps.blog.outputs.files }}' | while read file; do
+              TITLE=$(head -5 "$file" 2>/dev/null | grep '^# ' | head -1 | sed 's/^# //')
+              if [ -z "$TITLE" ]; then
+                TITLE=$(basename "$file" .md)
+              fi
+              echo "- $TITLE (\`$file\`)" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "No new blog posts in this push." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Site:** ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
