@@ -1,0 +1,33 @@
+name: Publish to NPM
+description: Publish a package to NPM with optional version bumping
+
+inputs:
+  npm-token:
+    description: NPM authentication token
+    required: true
+  version:
+    description: >
+      Version strategy:
+        "auto"  — publish only if package.json version changed vs previous commit
+        "none"  — publish current version as-is
+        "patch" / "minor" / "major" — bump, commit, tag, push, then publish
+    default: auto
+  access:
+    description: NPM publish access level (public or restricted)
+    default: public
+  tag:
+    description: NPM dist-tag (e.g. latest, beta)
+    default: latest
+  working-directory:
+    description: Working directory containing package.json
+    default: "."
+
+outputs:
+  published:
+    description: Whether a package was published (true/false)
+  version:
+    description: The published (or current) version
+
+runs:
+  using: node20
+  main: dist/index.js

@@ -4,9 +4,10 @@
   "private": true,
   "description": "Reusable GitHub Actions workflows and TypeScript actions",
   "scripts": {
-    "build": "npm run build:deploy-vercel && npm run build:apply-migration",
+    "build": "npm run build:deploy-vercel && npm run build:apply-migration && npm run build:publish-npm",
     "build:deploy-vercel": "ncc build src/deploy-vercel.ts -o deploy-vercel/dist --license licenses.txt",
     "build:apply-migration": "ncc build src/apply-migration.ts -o apply-migration/dist --license licenses.txt",
+    "build:publish-npm": "ncc build src/publish-npm.ts -o publish-npm/dist --license licenses.txt",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit"
   },

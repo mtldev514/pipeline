@@ -1,0 +1,68 @@
+name: Publish to NPM
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version
+        type: string
+        default: "20"
+      install-command:
+        description: Install command
+        type: string
+        default: "npm ci"
+      version:
+        description: >
+          Version strategy:
+            "auto"  — publish only if package.json version changed
+            "none"  — publish current version as-is
+            "patch" / "minor" / "major" — bump, commit, tag, push, then publish
+        type: string
+        default: auto
+      access:
+        description: NPM publish access level
+        type: string
+        default: public
+      tag:
+        description: NPM dist-tag
+        type: string
+        default: latest
+      working-directory:
+        description: Working directory containing package.json
+        type: string
+        default: "."
+    secrets:
+      NPM_TOKEN:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Install dependencies
+        run: ${{ inputs.install-command }}
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to NPM
+        uses: mtldev514/actions/publish-npm@main
+        with:
+          npm-token: ${{ secrets.NPM_TOKEN }}
+          version: ${{ inputs.version }}
+          access: ${{ inputs.access }}
+          tag: ${{ inputs.tag }}
+          working-directory: ${{ inputs.working-directory }}

@@ -1,0 +1,66 @@
+name: CI Quality Gate
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version
+        type: string
+        default: "20"
+      install-command:
+        description: Install command
+        type: string
+        default: "npm ci"
+      typecheck-command:
+        description: Typecheck command (leave empty to skip)
+        type: string
+        default: ""
+      lint-command:
+        description: Lint command (leave empty to skip)
+        type: string
+        default: ""
+      test-command:
+        description: Test command (leave empty to skip)
+        type: string
+        default: ""
+      build-command:
+        description: Build command (leave empty to skip)
+        type: string
+        default: ""
+      working-directory:
+        description: Working directory
+        type: string
+        default: "."
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: ${{ inputs.install-command }}
+
+      - name: Typecheck
+        if: inputs.typecheck-command != ''
+        run: ${{ inputs.typecheck-command }}
+
+      - name: Lint
+        if: inputs.lint-command != ''
+        run: ${{ inputs.lint-command }}
+
+      - name: Test
+        if: inputs.test-command != ''
+        run: ${{ inputs.test-command }}
+
+      - name: Build
+        if: inputs.build-command != ''
+        run: ${{ inputs.build-command }}

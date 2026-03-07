@@ -3,3 +3,4 @@ node_modules/
 # dist is committed for GitHub Actions to consume
 !deploy-vercel/dist/
 !apply-migration/dist/
+!publish-npm/dist/
