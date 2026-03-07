@@ -59,7 +59,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish to NPM
-        uses: mtldev514/actions/publish-npm@main
+        uses: mtldev514/pipeline/publish-npm@main
         with:
           npm-token: ${{ secrets.NPM_TOKEN }}
           version: ${{ inputs.version }}
