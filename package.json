@@ -1,5 +1,5 @@
 {
-  "name": "@mtldev514/actions",
+  "name": "@mtldev514/pipeline",
   "version": "1.0.0",
   "private": true,
   "description": "Reusable GitHub Actions workflows and TypeScript actions",
