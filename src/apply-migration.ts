@@ -53,6 +53,23 @@ async function run(): Promise<void> {
     .filter((f) => f.endsWith(".sql"))
     .sort();
 
+  // Remove phantom versions — versions recorded in schema_migrations that don't
+  // correspond to any local migration file (e.g. auto-generated timestamps from
+  // the Supabase Migrations API). Safe to delete: if the SQL already ran, the
+  // next step will re-apply it idempotently; if it didn't, no harm done.
+  const localVersions = new Set(
+    files.map((f) => f.match(/^(\d+)/)?.[1]).filter(Boolean) as string[]
+  );
+  const phantoms = [...appliedVersions].filter((v) => !localVersions.has(v));
+  if (phantoms.length > 0) {
+    core.info(`Removing ${phantoms.length} phantom version(s): ${phantoms.join(", ")}`);
+    const list = phantoms.map((v) => `'${v.replace(/'/g, "''")}'`).join(", ");
+    await executeSQL(
+      `DELETE FROM supabase_migrations.schema_migrations WHERE version IN (${list})`
+    );
+    for (const v of phantoms) appliedVersions.delete(v);
+  }
+
   let appliedCount = 0;
 
   for (const file of files) {
