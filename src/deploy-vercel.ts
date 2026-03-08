@@ -14,31 +14,15 @@ async function run(): Promise<void> {
   process.env.VERCEL_PROJECT_ID = projectId;
 
   const opts: exec.ExecOptions = { cwd: workingDirectory };
-  const environment = production ? "production" : "preview";
-  const prodFlag = production ? "--prod" : "";
-
-  core.info(`Deploying to Vercel (${environment})`);
+  core.info(`Deploying to Vercel (${production ? "production" : "preview"})`);
 
   await exec.exec("npm", ["install", "--global", "vercel@latest"], opts);
-
-  await exec.exec(
-    "vercel",
-    ["pull", "--yes", `--environment=${environment}`, `--token=${token}`],
-    opts
-  );
-
-  await exec.exec(
-    "vercel",
-    ["build", ...(production ? ["--prod"] : []), `--token=${token}`],
-    opts
-  );
 
   let deployUrl = "";
   await exec.exec(
     "vercel",
     [
       "deploy",
-      "--prebuilt",
       ...(production ? ["--prod"] : []),
       `--token=${token}`,
     ],
