@@ -2,32 +2,43 @@ import * as core from "@actions/core";
 import * as path from "path";
 import * as fs from "fs";
 
-interface Migration {
-  version: string;
-  name: string;
-}
-
 async function run(): Promise<void> {
   const accessToken = core.getInput("supabase-access-token", { required: true });
   const projectRef = core.getInput("supabase-project-ref", { required: true });
   const migrationsPath = core.getInput("migrations-path") || "supabase/migrations";
 
-  const apiBase = `https://api.supabase.com/v1/projects/${projectRef}/database/migrations`;
+  const queryUrl = `https://api.supabase.com/v1/projects/${projectRef}/database/query`;
   const headers = {
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/json",
   };
 
-  // Fetch already-applied migrations
-  core.info("Fetching applied migrations...");
-  const appliedRes = await fetch(apiBase, { headers });
-  if (!appliedRes.ok) {
-    throw new Error(`Failed to fetch migrations: ${appliedRes.status} ${await appliedRes.text()}`);
+  async function executeSQL(query: string): Promise<unknown[]> {
+    const res = await fetch(queryUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) {
+      throw new Error(`SQL execution failed: ${res.status} ${await res.text()}`);
+    }
+    return res.json();
   }
 
-  const applied: Migration[] = await appliedRes.json();
-  const appliedVersions = new Set(applied.map((m) => m.version));
-  core.info(`Found ${appliedVersions.size} applied migration(s)`);
+  // Read applied versions directly from schema_migrations so we see versions
+  // we recorded ourselves (not auto-generated timestamps from the Migrations API).
+  core.info("Fetching applied migrations...");
+  let appliedVersions: Set<string>;
+  try {
+    const rows = await executeSQL(
+      "SELECT version FROM supabase_migrations.schema_migrations"
+    ) as Array<{ version: string }>;
+    appliedVersions = new Set(rows.map((r) => r.version));
+    core.info(`Found ${appliedVersions.size} applied migration(s)`);
+  } catch {
+    core.info("Could not read schema_migrations — assuming fresh database");
+    appliedVersions = new Set();
+  }
 
   // Find local migration files
   const fullPath = path.resolve(migrationsPath);
@@ -60,15 +71,18 @@ async function run(): Promise<void> {
     const sql = fs.readFileSync(path.join(fullPath, file), "utf-8");
 
     core.info(`Applying: ${file}`);
-    const res = await fetch(apiBase, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ version, name, query: sql }),
-    });
 
-    if (!res.ok) {
-      throw new Error(`Failed to apply ${file}: ${res.status} ${await res.text()}`);
-    }
+    // Run the migration SQL via the query endpoint (not the migrations endpoint,
+    // which auto-generates timestamp-based versions we cannot control).
+    await executeSQL(sql);
+
+    // Record the version in schema_migrations using filename-prefix as the key.
+    const v = version.replace(/'/g, "''");
+    const n = name.replace(/'/g, "''");
+    await executeSQL(
+      `INSERT INTO supabase_migrations.schema_migrations(version, name) ` +
+      `VALUES ('${v}', '${n}') ON CONFLICT (version) DO NOTHING`
+    );
 
     core.info(`Applied: ${file}`);
     appliedCount++;
