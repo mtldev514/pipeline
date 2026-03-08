@@ -63,7 +63,7 @@ async function run(): Promise<void> {
     const res = await fetch(apiBase, {
       method: "POST",
       headers,
-      body: JSON.stringify({ name, query: sql }),
+      body: JSON.stringify({ version, name, query: sql }),
     });
 
     if (!res.ok) {
